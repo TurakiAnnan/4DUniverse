@@ -1,4 +1,4 @@
-from pathlib import Path
+from joblib import Parallel, delayed
 import numpy as np
 from scipy.spatial import KDTree
 from collections import defaultdict
@@ -10,63 +10,75 @@ GRAVITY_STRENGTH = 0.01
 BLACK_HOLE_THRESHOLD = 50
 BLACK_HOLE_RADIUS = 5
 CENTER_BIAS_STRENGTH = 0.2
+CENTER = np.array([VOLUME_SIZE / 2] * 3)
 
-# Add center black hole explicitly
-CENTER_BLACK_HOLE = np.array([[VOLUME_SIZE / 2, VOLUME_SIZE / 2, VOLUME_SIZE / 2]])
-
-# Prepare output directory
-Path("data").mkdir(parents=True, exist_ok=True)
-
+# Generate streams
 def generate_streams(n_streams):
     streams = np.random.rand(n_streams, 4)
     streams[:, :3] *= VOLUME_SIZE
     streams[:, 3] *= TIME_SPAN
 
-    # Bias stream positions toward center
-    center = np.array([VOLUME_SIZE/2]*3)
-    directions = center - streams[:, :3]
-    streams[:, :3] += CENTER_BIAS_STRENGTH * directions * (np.linalg.norm(directions, axis=1)/ (VOLUME_SIZE/2))[:, np.newaxis]
-
+    # Bias toward center
+    directions = CENTER - streams[:, :3]
+    scale = np.linalg.norm(directions, axis=1) / (VOLUME_SIZE / 2)
+    streams[:, :3] += CENTER_BIAS_STRENGTH * directions * scale[:, np.newaxis]
     return streams
 
-def find_intersections(streams, radius=4.5, time_window=3):
-    locked = []
-    black_holes = [CENTER_BLACK_HOLE[0].tolist()]
-    density_map = defaultdict(int)
+# Process a chunk of streams in parallel
+def process_chunk(chunk_idx, streams, time_window, radius):
+    local_locked = []
+    local_density = defaultdict(int)
+    local_black_holes = []
 
-    sorted_idx = np.argsort(streams[:, 3])
-    sorted_streams = streams[sorted_idx]
-
-    for i in range(len(sorted_streams)):
-        t_i = sorted_streams[i, 3]
+    for i in chunk_idx:
+        t_i = streams[i, 3]
         j = i + 1
         local_indices = []
         local_points = []
 
-        while j < len(sorted_streams) and (sorted_streams[j, 3] - t_i) < time_window:
+        while j < len(streams) and (streams[j, 3] - t_i) < time_window:
             local_indices.append(j)
-            local_points.append(sorted_streams[j, :3])
+            local_points.append(streams[j, :3])
             j += 1
 
         if local_points:
             local_points = np.array(local_points)
             tree = KDTree(local_points)
-            neighbors = tree.query_ball_point(sorted_streams[i, :3], radius)
+            neighbors = tree.query_ball_point(streams[i, :3], radius)
 
             for n in neighbors:
-                midpoint = 0.5 * (sorted_streams[i, :3] + local_points[n])
-                locked.append(midpoint)
+                midpoint = 0.5 * (streams[i, :3] + local_points[n])
+                local_locked.append(midpoint)
 
                 region = tuple((midpoint // BLACK_HOLE_RADIUS).astype(int))
-                density_map[region] += 1
+                local_density[region] += 1
 
-                boost = GRAVITY_STRENGTH * (10 if density_map[region] > BLACK_HOLE_THRESHOLD else 1)
+                if local_density[region] == BLACK_HOLE_THRESHOLD + 1:
+                    local_black_holes.append(midpoint.tolist())
 
-                neighbor_idx = local_indices[n]
-                direction = midpoint - sorted_streams[neighbor_idx, :3]
-                sorted_streams[neighbor_idx, :3] += boost * direction
+    return local_locked, local_black_holes
 
-                if density_map[region] == BLACK_HOLE_THRESHOLD + 1:
-                    black_holes.append(midpoint.tolist())
+# Main intersection finder using parallel processing
+def find_intersections_parallel(streams, radius=4.5, time_window=3, n_jobs=-1):
+    n = len(streams)
+    chunk_size = n // 8
+    indices = [range(i, min(i + chunk_size, n)) for i in range(0, n, chunk_size)]
 
-    return np.array(locked), np.array(black_holes)
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(process_chunk)(chunk, streams, time_window, radius)
+        for chunk in indices
+    )
+
+    all_locked = []
+    all_black_holes = []
+
+    for locked, blackholes in results:
+        all_locked.extend(locked)
+        all_black_holes.extend(blackholes)
+
+    return np.array(all_locked), np.array(all_black_holes)
+
+# Run a test
+streams = generate_streams(10000)
+locked, blackholes = find_intersections_parallel(streams)
+import ace_tools as tools; tools.display_dataframe_to_user(name="Visible Matter", dataframe=tools.pd.DataFrame(locked, columns=["x", "y", "z"]))
