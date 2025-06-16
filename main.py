@@ -20,4 +20,5 @@ show_simulation(streams, visible_matter, black_holes)
 
 # Step 5: Save to CSV
 pd.DataFrame(visible_matter, columns=["x", "y", "z"]).to_csv("data/visible_matter.csv", index=False)
-pd.DataFrame(black_holes, columns=["x", "y", "z"]).to_csv("data/black_holes.csv", index=False)
+if len(black_holes) > 0:
+    pd.DataFrame(black_holes, columns=["x", "y", "z"]).to_csv("data/black_holes.csv", index=False)
