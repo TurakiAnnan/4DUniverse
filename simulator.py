@@ -1,6 +1,6 @@
+# Updated simulator.py with higher collision probability and comments
 import numpy as np
 from scipy.spatial import KDTree
-import pandas as pd
 from collections import defaultdict
 
 # Simulation constants
@@ -16,10 +16,11 @@ def generate_streams(n_streams):
     streams[:, 3] *= TIME_SPAN
     return streams
 
-def find_intersections(streams, radius=2, time_window=2):
+def find_intersections(streams, radius=4.5, time_window=3):
     locked = []
     black_holes = []
     density_map = defaultdict(int)
+
     sorted_idx = np.argsort(streams[:, 3])
     sorted_streams = streams[sorted_idx]
 
@@ -43,18 +44,15 @@ def find_intersections(streams, radius=2, time_window=2):
                 midpoint = 0.5 * (sorted_streams[i, :3] + local_points[n])
                 locked.append(midpoint)
 
-                # Track density
                 region = tuple((midpoint // BLACK_HOLE_RADIUS).astype(int))
                 density_map[region] += 1
 
-                # Black hole gravity boost
                 if density_map[region] > BLACK_HOLE_THRESHOLD:
                     black_holes.append(midpoint)
                     boost = GRAVITY_STRENGTH * 10
                 else:
                     boost = GRAVITY_STRENGTH
 
-                # Gravitational pull
                 neighbor_idx = local_indices[n]
                 direction = midpoint - sorted_streams[neighbor_idx, :3]
                 sorted_streams[neighbor_idx, :3] += boost * direction
