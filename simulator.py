@@ -5,8 +5,8 @@ from config import num_streams, volume_size, time_span, intersection_radius, tim
 
 def generate_streams():
     streams = np.random.rand(num_streams, 4)
-    streams[:, :3] *= volume_size
-    streams[:, 3] *= time_span
+    streams[:, :3] *= volume_size  # x, y, z
+    streams[:, 3] *= time_span     # time
     return streams
 
 def find_intersections(streams):
