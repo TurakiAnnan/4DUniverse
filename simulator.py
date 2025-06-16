@@ -6,20 +6,31 @@ from collections import defaultdict
 VOLUME_SIZE = 1000
 TIME_SPAN = 1000
 GRAVITY_STRENGTH = 0.01
-BLACK_HOLE_THRESHOLD = 50       # Threshold for black hole formation
+BLACK_HOLE_THRESHOLD = 50
 BLACK_HOLE_RADIUS = 5
-CENTER_BIAS_STRENGTH = 0.2      # Controls how much streams are pulled toward center
+CENTER_BIAS_STRENGTH = 0.2
+CENTER_GRAVITY_STRENGTH = 0.005
 
 def generate_streams(n_streams):
     streams = np.random.rand(n_streams, 4)
     streams[:, :3] *= VOLUME_SIZE
     streams[:, 3] *= TIME_SPAN
 
-    # Bias stream positions toward center
-    center = np.array([VOLUME_SIZE/2]*3)
-    directions = center - streams[:, :3]
-    streams[:, :3] += CENTER_BIAS_STRENGTH * directions * (np.linalg.norm(directions, axis=1)/ (VOLUME_SIZE/2))[:, np.newaxis]
+    # Initial push toward center (Big Bang model)
+    center = np.array([VOLUME_SIZE / 2] * 3)
+    direction = center - streams[:, :3]
+    norm = np.linalg.norm(direction, axis=1, keepdims=True)
+    scaling = norm / (VOLUME_SIZE / 2)
+    streams[:, :3] += CENTER_BIAS_STRENGTH * direction * scaling
 
+    return streams
+
+def apply_center_gravity(streams):
+    center = np.array([VOLUME_SIZE / 2] * 3)
+    direction = center - streams[:, :3]
+    norm = np.linalg.norm(direction, axis=1, keepdims=True)
+    direction = direction / (norm + 1e-6)
+    streams[:, :3] += CENTER_GRAVITY_STRENGTH * direction
     return streams
 
 def find_intersections(streams, radius=4.5, time_window=3):
@@ -54,7 +65,6 @@ def find_intersections(streams, radius=4.5, time_window=3):
                 density_map[region] += 1
 
                 boost = GRAVITY_STRENGTH * (10 if density_map[region] > BLACK_HOLE_THRESHOLD else 1)
-
                 neighbor_idx = local_indices[n]
                 direction = midpoint - sorted_streams[neighbor_idx, :3]
                 sorted_streams[neighbor_idx, :3] += boost * direction
