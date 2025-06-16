@@ -1,33 +1,37 @@
+from pathlib import Path
 import numpy as np
 from scipy.spatial import KDTree
 from collections import defaultdict
 
-# Simulation constants
+# Constants
 VOLUME_SIZE = 1000
 TIME_SPAN = 1000
 GRAVITY_STRENGTH = 0.01
-BLACK_HOLE_THRESHOLD = 50       # Threshold for black hole formation
+BLACK_HOLE_THRESHOLD = 50
 BLACK_HOLE_RADIUS = 5
-CENTER_BIAS_STRENGTH = 0.2      # Pull toward center of universe
-CENTER_POSITION = np.array([0.0, 0.0, 0.0])  # Explicit central black hole
+CENTER_BIAS_STRENGTH = 0.2
+
+# Add center black hole explicitly
+CENTER_BLACK_HOLE = np.array([[VOLUME_SIZE / 2, VOLUME_SIZE / 2, VOLUME_SIZE / 2]])
+
+# Prepare output directory
+Path("data").mkdir(parents=True, exist_ok=True)
 
 def generate_streams(n_streams):
     streams = np.random.rand(n_streams, 4)
     streams[:, :3] *= VOLUME_SIZE
     streams[:, 3] *= TIME_SPAN
 
-    # Pull streams toward the center
-    directions = CENTER_POSITION - streams[:, :3]
-    norms = np.linalg.norm(directions, axis=1)
-    norms[norms == 0] = 1  # Avoid division by zero
-    unit_directions = directions / norms[:, np.newaxis]
-    streams[:, :3] += CENTER_BIAS_STRENGTH * unit_directions
+    # Bias stream positions toward center
+    center = np.array([VOLUME_SIZE/2]*3)
+    directions = center - streams[:, :3]
+    streams[:, :3] += CENTER_BIAS_STRENGTH * directions * (np.linalg.norm(directions, axis=1)/ (VOLUME_SIZE/2))[:, np.newaxis]
 
     return streams
 
 def find_intersections(streams, radius=4.5, time_window=3):
     locked = []
-    black_holes = [CENTER_POSITION]  # Start with central black hole
+    black_holes = [CENTER_BLACK_HOLE[0].tolist()]
     density_map = defaultdict(int)
 
     sorted_idx = np.argsort(streams[:, 3])
@@ -56,14 +60,13 @@ def find_intersections(streams, radius=4.5, time_window=3):
                 region = tuple((midpoint // BLACK_HOLE_RADIUS).astype(int))
                 density_map[region] += 1
 
-                # Increase local gravity if more visible matter accumulates
-                local_boost = GRAVITY_STRENGTH * (1 + density_map[region] / 10)
+                boost = GRAVITY_STRENGTH * (10 if density_map[region] > BLACK_HOLE_THRESHOLD else 1)
 
                 neighbor_idx = local_indices[n]
                 direction = midpoint - sorted_streams[neighbor_idx, :3]
-                sorted_streams[neighbor_idx, :3] += local_boost * direction
+                sorted_streams[neighbor_idx, :3] += boost * direction
 
                 if density_map[region] == BLACK_HOLE_THRESHOLD + 1:
-                    black_holes.append(midpoint)
+                    black_holes.append(midpoint.tolist())
 
     return np.array(locked), np.array(black_holes)
