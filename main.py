@@ -8,7 +8,7 @@ from visualizer import show_simulation
 import pandas as pd
 
 # Step 1: Create 5000 4D streams
-streams = generate_streams(5000)
+streams = generate_streams(100000)
 
 # Step 2: Apply blackhole influence
 streams = apply_blackhole_gravity(streams)
