@@ -1,30 +1,32 @@
-# main.py
-
-from simulator import generate_streams, find_intersections
+from simulator import (
+    generate_streams,
+    apply_blackhole_gravity,
+    apply_local_gravity,
+    find_intersections,
+)
 from visualizer import show_simulation
-from exporter import export_locked_points
-from config import run_label
-import os
+import pandas as pd
 
-def main():
-    print(f"🔭 Running simulation: {run_label}")
+# Step 1: Create 5000 4D streams
+streams = generate_streams(5000)
 
-    # Generate 4D streams
-    streams = generate_streams()
+# Step 2: Apply blackhole influence
+streams = apply_blackhole_gravity(streams)
 
-    # Find 4D collisions that become 'visible matter'
-    locked = find_intersections(streams)
+# Step 3: First pass of visible matter
+visible_matter = find_intersections(streams)
 
-    print(f"✅ Locked (visible) matter count: {len(locked)}")
+# Step 4: Pull lines toward detected visible matter
+if len(visible_matter) > 0:
+    streams = apply_local_gravity(streams, visible_matter)
 
-    # Save output to a data folder
-    os.makedirs("data", exist_ok=True)
-    export_file = f"data/visible_matter_{run_label}.csv"
-    export_locked_points(locked, filename=export_file)
-    print(f"📁 Saved visible matter to {export_file}")
+# Step 5: Final pass to get updated visible matter
+final_visible = find_intersections(streams)
 
-    # Launch 3D visualization
-    show_simulation(streams, locked)
+# Step 6: Show results
+print(f"✅ Locked (visible) matter count: {len(final_visible)}")
+show_simulation(streams, final_visible)
 
-if __name__ == "__main__":
-    main()
+# Optional: Save visible matter to CSV
+df = pd.DataFrame(final_visible, columns=["x", "y", "z"])
+df.to_csv("data/visible_matter.csv", index=False)
