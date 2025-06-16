@@ -12,7 +12,6 @@ BLACK_HOLE_RADIUS = 5
 CENTER_BIAS_STRENGTH = 0.2
 CENTER = np.array([VOLUME_SIZE / 2] * 3)
 
-# Generate streams
 def generate_streams(n_streams):
     streams = np.random.rand(n_streams, 4)
     streams[:, :3] *= VOLUME_SIZE
@@ -24,7 +23,6 @@ def generate_streams(n_streams):
     streams[:, :3] += CENTER_BIAS_STRENGTH * directions * scale[:, np.newaxis]
     return streams
 
-# Process a chunk of streams in parallel
 def process_chunk(chunk_idx, streams, time_window, radius):
     local_locked = []
     local_density = defaultdict(int)
@@ -58,10 +56,9 @@ def process_chunk(chunk_idx, streams, time_window, radius):
 
     return local_locked, local_black_holes
 
-# Main intersection finder using parallel processing
-def find_intersections_parallel(streams, radius=4.5, time_window=3, n_jobs=-1):
+def find_intersections_parallel(streams, radius=4.5, time_window=3, n_jobs=2):
     n = len(streams)
-    chunk_size = n // 8
+    chunk_size = max(n // 8, 1)
     indices = [range(i, min(i + chunk_size, n)) for i in range(0, n, chunk_size)]
 
     results = Parallel(n_jobs=n_jobs)(
@@ -77,8 +74,3 @@ def find_intersections_parallel(streams, radius=4.5, time_window=3, n_jobs=-1):
         all_black_holes.extend(blackholes)
 
     return np.array(all_locked), np.array(all_black_holes)
-
-# Run a test
-streams = generate_streams(10000)
-locked, blackholes = find_intersections_parallel(streams)
-import ace_tools as tools; tools.display_dataframe_to_user(name="Visible Matter", dataframe=tools.pd.DataFrame(locked, columns=["x", "y", "z"]))
