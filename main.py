@@ -6,7 +6,7 @@ from visualizer import show_simulation
 import pandas as pd
 
 # Step 1: Create 100,000 4D streams
-streams = generate_streams(500000)
+streams = generate_streams(200000)
 
 # Step 2: First pass to detect visible matter and black holes
 visible_matter, black_holes = find_intersections(streams)
