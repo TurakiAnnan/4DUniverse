@@ -1,7 +1,5 @@
 from simulator import (
     generate_streams,
-    apply_blackhole_gravity,
-    apply_local_gravity,
     find_intersections,
 )
 from visualizer import show_simulation
