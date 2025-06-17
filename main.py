@@ -10,7 +10,7 @@ DATA_PATH.mkdir(exist_ok=True)
 
 # Step 1: Generate streams
 print("🔄 Generating 100,000 4D streams...")
-streams = generate_streams(100000)
+streams = generate_streams(1000000)
 
 # Step 2: Detect visible matter and dynamic black holes
 print("🔍 Finding intersections and black holes...")
