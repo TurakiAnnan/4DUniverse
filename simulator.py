@@ -2,25 +2,31 @@ from joblib import Parallel, delayed
 import numpy as np
 from scipy.spatial import KDTree
 from collections import defaultdict
+from pathlib import Path
 
 # Constants
-VOLUME_SIZE = 1000
-TIME_SPAN = 200
+VOLUME_SIZE = 5000
+TIME_SPAN = 1000
 GRAVITY_STRENGTH = 0.01
 BLACK_HOLE_THRESHOLD = 50
 BLACK_HOLE_RADIUS = 5
-CENTER_BIAS_STRENGTH = 2
+CENTER_BIAS_STRENGTH = 2.0  # Maximum pull strength at center
 CENTER = np.array([VOLUME_SIZE / 2] * 3)
+
+# Ensure output directory exists
+Path("data").mkdir(parents=True, exist_ok=True)
 
 def generate_streams(n_streams):
     streams = np.random.rand(n_streams, 4)
     streams[:, :3] *= VOLUME_SIZE
     streams[:, 3] *= TIME_SPAN
 
-    # Bias toward center
+    # Decaying bias toward center
     directions = CENTER - streams[:, :3]
-    scale = np.linalg.norm(directions, axis=1) / (VOLUME_SIZE / 2)
-    streams[:, :3] += CENTER_BIAS_STRENGTH * directions * scale[:, np.newaxis]
+    distances = np.linalg.norm(directions, axis=1)
+    decay = np.exp(-distances / (VOLUME_SIZE * 0.2))  # Pull weakens with distance
+    streams[:, :3] += CENTER_BIAS_STRENGTH * directions * decay[:, np.newaxis]
+
     return streams
 
 def process_chunk(chunk_idx, streams, time_window, radius):
@@ -56,9 +62,9 @@ def process_chunk(chunk_idx, streams, time_window, radius):
 
     return local_locked, local_black_holes
 
-def find_intersections_parallel(streams, radius=4.5, time_window=3, n_jobs=2):
+def find_intersections_parallel(streams, radius=4.5, time_window=3, n_jobs=-1):
     n = len(streams)
-    chunk_size = max(n // 8, 1)
+    chunk_size = n // 8
     indices = [range(i, min(i + chunk_size, n)) for i in range(0, n, chunk_size)]
 
     results = Parallel(n_jobs=n_jobs)(
@@ -72,5 +78,8 @@ def find_intersections_parallel(streams, radius=4.5, time_window=3, n_jobs=2):
     for locked, blackholes in results:
         all_locked.extend(locked)
         all_black_holes.extend(blackholes)
+
+    # Add center black hole explicitly
+    all_black_holes.append(CENTER.tolist())
 
     return np.array(all_locked), np.array(all_black_holes)
