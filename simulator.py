@@ -5,11 +5,11 @@ from collections import defaultdict
 
 # Constants
 VOLUME_SIZE = 1000
-TIME_SPAN = 1000
+TIME_SPAN = 200
 GRAVITY_STRENGTH = 0.01
 BLACK_HOLE_THRESHOLD = 50
 BLACK_HOLE_RADIUS = 5
-CENTER_BIAS_STRENGTH = 0.2
+CENTER_BIAS_STRENGTH = 2
 CENTER = np.array([VOLUME_SIZE / 2] * 3)
 
 def generate_streams(n_streams):
