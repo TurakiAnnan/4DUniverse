@@ -30,7 +30,7 @@ print(f"✅ Locked (visible) matter count: {len(visible_matter)}")
 print(f"🌀 Black hole count: {len(black_holes)}")
 
 # Step 4: Show visualization (optional)
-show_simulation(streams, visible_matter)
+#show_simulation(streams, visible_matter)
 
 # Step 5: Save results to CSV
 pd.DataFrame(visible_matter, columns=["x", "y", "z"]).to_csv("data/visible_matter.csv", index=False)
