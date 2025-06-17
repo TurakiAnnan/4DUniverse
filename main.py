@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 # Constants (must match simulator settings)
-VOLUME_SIZE = 1000
+VOLUME_SIZE = 5000
 
 # Step 0: Ensure data directory exists
 Path("data").mkdir(exist_ok=True)
