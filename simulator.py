@@ -10,7 +10,7 @@ TIME_SPAN = 1000
 GRAVITY_STRENGTH = 0.01
 BLACK_HOLE_THRESHOLD = 50
 BLACK_HOLE_RADIUS = 5
-CENTER_BIAS_STRENGTH = 2.0  # Maximum pull strength at center
+CENTER_BIAS_STRENGTH = 4.0  # Maximum pull strength at center
 CENTER = np.array([VOLUME_SIZE / 2] * 3)
 
 # Ensure output directory exists
