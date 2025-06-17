@@ -12,7 +12,7 @@ Path("data").mkdir(exist_ok=True)
 
 # Step 1: Generate streams
 print("🔄 Generating 100,000 4D streams...")
-streams = generate_streams(100000)
+streams = generate_streams(200000)
 
 # Step 2: Detect intersections and black holes in parallel
 print("🔍 Finding intersections and black holes...")
