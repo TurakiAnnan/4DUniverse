@@ -1,37 +1,28 @@
 from simulator import generate_streams, find_intersections_parallel
-from visualizer import show_simulation
-import pandas as pd
 from pathlib import Path
+import pandas as pd
 import numpy as np
 
-# Constants (must match simulator settings)
-VOLUME_SIZE = 5000
-
-# Step 0: Ensure data directory exists
-Path("data").mkdir(exist_ok=True)
+# Constants
+CENTER_BLACK_HOLE = np.array([[500.0, 500.0, 500.0]])  # Default central seed
+DATA_PATH = Path("data")
+DATA_PATH.mkdir(exist_ok=True)
 
 # Step 1: Generate streams
 print("🔄 Generating 100,000 4D streams...")
-streams = generate_streams(50000)
+streams = generate_streams(100000)
 
-# Step 2: Detect intersections and black holes in parallel
+# Step 2: Detect visible matter and dynamic black holes
 print("🔍 Finding intersections and black holes...")
 visible_matter, black_holes = find_intersections_parallel(streams, n_jobs=2)
 
-# Step 2.5: Always include the central black hole explicitly
-center_bh = [VOLUME_SIZE / 2] * 3
-if len(black_holes) > 0:
-    black_holes = np.vstack([center_bh, black_holes])
-else:
-    black_holes = np.array([center_bh])
+# Step 3: Add the fixed central black hole
+black_holes = np.vstack([CENTER_BLACK_HOLE, black_holes]) if black_holes.size else CENTER_BLACK_HOLE
 
-# Step 3: Report findings
+# Step 4: Report results
 print(f"✅ Locked (visible) matter count: {len(visible_matter)}")
-print(f"🌀 Black hole count: {len(black_holes)}")
-
-# Step 4: Show visualization (optional)
-#show_simulation(streams, visible_matter)
+print(f"🌀 Black hole count: {len(black_holes)} (including central core)")
 
 # Step 5: Save results to CSV
-pd.DataFrame(visible_matter, columns=["x", "y", "z"]).to_csv("data/visible_matter.csv", index=False)
-pd.DataFrame(black_holes, columns=["x", "y", "z"]).to_csv("data/black_holes.csv", index=False)
+pd.DataFrame(visible_matter, columns=["x", "y", "z"]).to_csv(DATA_PATH / "visible_matter.csv", index=False)
+pd.DataFrame(black_holes, columns=["x", "y", "z"]).to_csv(DATA_PATH / "black_holes.csv", index=False)
