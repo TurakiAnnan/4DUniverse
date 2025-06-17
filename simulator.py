@@ -4,7 +4,7 @@ from scipy.spatial import KDTree
 from collections import defaultdict
 
 # Constants
-VOLUME_SIZE = 3000
+VOLUME_SIZE = 2000
 TIME_SPAN = 1500
 GRAVITY_STRENGTH = 0.01
 BLACK_HOLE_THRESHOLD = 50
